@@ -45,8 +45,7 @@ protected:
 	//添加武装函数
 	void QKeyPressed();
 	
-	//播放攻击动画蒙太奇
-	virtual void PlayAttackMontage() override;
+ 
 	
 	//攻击动画蒙太奇结束播放通知
 	virtual void AttackEnd() override;

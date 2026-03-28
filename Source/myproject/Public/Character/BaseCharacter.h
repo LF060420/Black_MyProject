@@ -33,14 +33,16 @@ protected:
 	virtual void Attack();
 
 	//定义Death动画蒙太奇函数
-	virtual void PlayDeathMontage();
+	virtual void Die();
 
 	/*
 	* Play Montage Function
 	*/
 
 	//播放攻击动画蒙太奇
-	virtual void PlayAttackMontage();
+	virtual int32 PlayAttackMontage();
+
+	virtual int32 PlayDeathMontage();
 	//定义播放HitReact动画蒙太奇函数
 	void PlayHitReactMontage(const FName& SectionName);
 	//计算受击方向
@@ -51,11 +53,8 @@ protected:
 	void SpawnHitParticles(const FVector& ImpactPoint);
 
 	virtual void HandleDamage(float DamageAmount);
-
-	//在蓝图中添加Death动画蒙太奇变量
-	UPROPERTY(EditDefaultsOnly, Category = Montages)
-	UAnimMontage* DeathMontage;        
-
+	void PlayMontageSection(UAnimMontage* Montage,const FName& SectionName);
+	int32 PlayRandomMontageSection(UAnimMontage* Montage, const TArray<FName>& SectionNames);
 
 
 	//攻击蒙太奇结束通知
@@ -70,6 +69,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = Weapon)
 	AWeapon* EquippedWeapon;       //武器变量
 
+
 	/**
 	* 动画蓝图
 	*/
@@ -79,6 +79,15 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Montages)
 	UAnimMontage* HitReactMontage;     //在蓝图中添加ReactFrom动画蒙太奇变量
 
+	//在蓝图中添加Death动画蒙太奇变量
+	UPROPERTY(EditDefaultsOnly, Category = Montages)
+	UAnimMontage* DeathMontage;        
+
+	UPROPERTY(EditAnywhere,Category="Combat")
+	TArray<FName> AttackMontageSections;     //攻击动画蒙太奇片段数组
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	TArray<FName> DeathMontageSections;
 
 
 	/*
@@ -88,6 +97,7 @@ protected:
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly)
 	UAttributeComponent* Attributes;
 	
+
 private:
 
 	//添加受击音效

@@ -116,7 +116,7 @@ private:
 	bool IsDead();
 	bool IsEngaged();
 	void ClearPatrolTimer();
-
+	void DisabledActor();
 
 	/*
 	* Combat
@@ -137,6 +137,8 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	float ChasingSpeed = 400.f;
 
+	UPROPERTY(EditAnywhere,Category="Combat")
+	float DeathLifeSpan = 3.f;
 
 protected:
 
@@ -154,18 +156,17 @@ protected:
 
 	//人物存活/死亡枚举
 	UPROPERTY(BlueprintReadOnly)
-	EDeathPose DeathPose;
+	TEnumAsByte<EDeathPose> DeathPose;
 
 	//定义Death动画蒙太奇函数
-	virtual void PlayDeathMontage() override;
+	virtual void Die() override;
 
 	//攻击函数
 	virtual void Attack() override;
-	//播放攻击蒙太奇
-	virtual void PlayAttackMontage() override;
 
 	virtual bool CanAttack() override;
 
 	virtual void HandleDamage(float DamageAmount) override;
 
+	virtual int32 PlayDeathMontage() override;
 };

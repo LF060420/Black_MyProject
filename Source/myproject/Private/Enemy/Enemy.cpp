@@ -162,6 +162,12 @@ void AEnemy::ClearPatrolTimer()
 	GetWorldTimerManager().ClearTimer(PatrolTimer);
 }
 
+void AEnemy::DisabledActor()
+{
+	// 禁用角色所有碰撞体
+	SetActorEnableCollision(false);
+}
+
 void AEnemy::StartAttackTimer()
 {
 	EnemyState = EEnemyState::EES_Attacking;
@@ -192,6 +198,7 @@ void AEnemy::MoveToTarget(AActor* Target)
 	MoveRequest.SetGoalActor(Target);
 	// 设置到达目标的接受半径（距离目标自动停止）
 	MoveRequest.SetAcceptanceRadius(60.f);
+	if(EnemyState!=EEnemyState::EES_Attacking)
 	EnemyController->MoveTo(MoveRequest);
 }
 
@@ -256,54 +263,42 @@ void AEnemy::HandleDamage(float DamageAmount)
 	}
 }
 
+int32 AEnemy::PlayDeathMontage()
+{
+	const int32 Selection = Super::PlayDeathMontage();
+	TEnumAsByte<EDeathPose> Pose(Selection);
+	if (Pose < EDeathPose::EDP_Max)
+	{
+		DeathPose = Pose;
+	}
+	return Selection;
+}
+
 
 // 播放Death蒙太奇函数
-void AEnemy::PlayDeathMontage()
+void AEnemy::Die()
 {
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	// 禁用角色所有碰撞体
-	SetActorEnableCollision(false);
-	if (AnimInstance && DeathMontage)
-	{
-		AnimInstance->Montage_Play(DeathMontage);
-	}
-	DeathPose = EDeathPose::EDP_Death;
+	
+	DisabledActor();
+	PlayDeathMontage();
+	ClearAttackTimer();
 	EnemyState = EEnemyState::EES_Dead;
-	SetLifeSpan(3.f);
+
+	ChasingSpeed = 0.f;
+
+	HideHealthBar();
+	SetLifeSpan(DeathLifeSpan);
+	GetCharacterMovement()->bOrientRotationToMovement = false;
 }
 
 //攻击函数
 void AEnemy::Attack()
 {
 	Super::Attack();
+	EnemyState = EEnemyState::EES_Attacking;
 	PlayAttackMontage();
 }
-//播放攻击蒙太奇
-void AEnemy::PlayAttackMontage()
-{
-	Super::PlayAttackMontage();
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if (AnimInstance && AttackMontage)
-	{
-		AnimInstance->Montage_Play(AttackMontage);
-		const int32 Selection = FMath::RandRange(0, 2);
-		FName SectionName = FName();
-		switch (Selection)
-		{
-		case 0:
-			SectionName = FName("Attack1");
-			break;
-		case 1:
-			SectionName = FName("Attack2");
-			break;
-		case 2:
-			SectionName = FName("Attack3");
-		default:
-			break;
-		}
-		AnimInstance->Montage_JumpToSection(SectionName, AttackMontage);
-	}
-}
+
 
 
 
@@ -371,7 +366,7 @@ void AEnemy::GetHit_Implementation(const FVector& ImpactPoint)
 	{
 		DirectionHitReact(ImpactPoint);
 	}
-	else PlayDeathMontage();
+	else Die();
 
 	PlayHitSound(ImpactPoint);
 	SpawnHitParticles(ImpactPoint);
