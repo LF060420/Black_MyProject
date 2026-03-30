@@ -61,7 +61,7 @@ void ABaseCharacter::AttackEnd()
 //播放death蒙太奇
 void ABaseCharacter::Die()
 {
-
+	UE_LOG(LogTemp, Warning, TEXT("Fu is Worked!"));
 }
 
 //计算受击方向
@@ -161,7 +161,14 @@ void ABaseCharacter::HandleDamage(float DamageAmount)
 {
 	if (Attributes)
 	{
+		const bool bWasAlive = Attributes->isAlive();
+
 		Attributes->ReceiveDamage(DamageAmount);
+
+		if (bWasAlive && !Attributes->isAlive())
+		{
+			Die();
+		}
 	}
 }
 
@@ -192,7 +199,12 @@ int32 ABaseCharacter::PlayAttackMontage()
 
 int32 ABaseCharacter::PlayDeathMontage()
 {
-
+	if (!DeathMontage || DeathMontageSections.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ABaseCharacter::PlayDeathMontage - No DeathMontage or no sections"));
+		return INDEX_NONE;
+	}
+	UE_LOG(LogTemp, Warning, TEXT("ABaseCharacter::PlayDeathMontage selected section index: "));
 	return PlayRandomMontageSection(DeathMontage,DeathMontageSections);
 }
 

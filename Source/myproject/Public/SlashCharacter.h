@@ -26,6 +26,7 @@ public:
 
 	
 protected:
+
 	virtual void BeginPlay() override;
 	
 	//添加输入前后左右移动

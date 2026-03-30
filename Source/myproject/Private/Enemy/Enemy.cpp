@@ -77,6 +77,8 @@ void AEnemy::BeginPlay()
 void AEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	
+
 	if (IsDead()) return;
 	if (EnemyState > EEnemyState::EES_Patrolling)
 	{
@@ -86,6 +88,7 @@ void AEnemy::Tick(float DeltaTime)
 	{
 		CheckPatrolTarget();
 	}
+	
 }
 
 
@@ -275,6 +278,7 @@ int32 AEnemy::PlayDeathMontage()
 	if (Pose < EDeathPose::EDP_Max)
 	{
 		DeathPose = Pose;
+		
 	}
 	return Selection;
 }
@@ -283,11 +287,13 @@ int32 AEnemy::PlayDeathMontage()
 // 播放Death蒙太奇函数
 void AEnemy::Die()
 {
-	
+	EnemyState = EEnemyState::EES_Dead;
+	if(IsDead())
+	UE_LOG(LogTemp, Warning, TEXT("Zi::Die()"));
 	DisabledActor();
 	PlayDeathMontage();
 	ClearAttackTimer();
-	EnemyState = EEnemyState::EES_Dead;
+	
 
 	ChasingSpeed = 0.f;
 
