@@ -4,6 +4,9 @@ UAttributeComponent::UAttributeComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
+	//设置默认生命值
+	MaxHealth = 100.f;
+	Health = MaxHealth;
 }
 
 

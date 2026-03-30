@@ -53,7 +53,12 @@ void AEnemy::BeginPlay()
 	Super::BeginPlay();
 	if (HealthBarWidget)
 	{
-		HealthBarWidget->SetVisibility(false);
+		// 设置初始血条百分比（确保 Attribute 已初始化）
+		if (Attributes)
+		{
+			HealthBarWidget->SetHealthPercent(Attributes->GetHealthPercent());
+		}
+		HealthBarWidget->SetVisibility(true);
 	}
 	EnemyController = Cast<AAIController>(GetController());
 	MoveToTarget(PatrolTarget);
