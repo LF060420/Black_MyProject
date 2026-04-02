@@ -2,6 +2,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "GroomComponent.h"
 #include "items.h"
 #include "Weapon.h"
@@ -20,6 +21,16 @@ ASlashCharacter::ASlashCharacter()
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	//设置玩家旋转速度的默认值
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
+	/*设置网格体碰撞为世界动态，能够接收武器碰撞通道，并自动忽略摄像机碰撞
+	  先把所有通道的响应都设置为 忽略
+	  对 视线 / 射线检测 通道 设置为 阻挡
+	  对 世界动态 通道 设置为 重叠
+	  开启重叠事件生成（必须开，否则重叠不触发）*/
+	GetMesh()->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+	GetMesh()->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic,ECollisionResponse::ECR_Overlap);
+	GetMesh()->SetGenerateOverlapEvents(true);
 	//添加组件[弹簧臂]
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(GetRootComponent());
@@ -42,73 +53,20 @@ void ASlashCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	//为人物添加标签以方便敌人追踪
-	Tags.Add(FName("SlashCharacter"));
+	Tags.Add(FName("EngageableTarget"));   //方便Enemy追踪该标签的玩家
 }
 
-//人物前后左右移动事件函数
-void ASlashCharacter::MoveForward(float Value)
+void ASlashCharacter::GetHit_Implementation(const FVector& ImpactPoint)
 {
-	//如果正在攻击或者正在卸装/装备则停止移动
-	if (ActionState != EActionState::EAS_Unoccupied) return;
-	if (Controller && (Value != 0.f))
-	{
-		//找出向前的正确方向
-		const FRotator ControlRotation = GetControlRotation();
-		const FRotator YawRotation(0.f, ControlRotation.Yaw, 0.f);
-		const FVector Direction=FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-		AddMovementInput(Direction, Value);
-	}
-}
-void ASlashCharacter::MoveRight(float Value)
-{
-	//如果正在攻击或者正在卸装/装备则停止移动
-	if (ActionState != EActionState::EAS_Unoccupied) return;
-	if (Controller && (Value != 0.f))
-	{
-		//找到向右的正确方向
-		const FRotator ControlRotation = GetControlRotation();
-		const FRotator YawRotation(0.f, ControlRotation.Yaw, 0.f);
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-		AddMovementInput(Direction, Value);
-	}
+	Super::GetHit_Implementation(ImpactPoint);
+	ActionState = EActionState::EAS_HitReaction;
 }
 
-//设置玩家鼠标转动视角函数
-void ASlashCharacter::Turn(float Value)
+// 每帧运行事件
+void ASlashCharacter::Tick(float DeltaTime)
 {
-	AddControllerYawInput(Value);
-}
-void ASlashCharacter::LookUp(float Value)
-{
-	AddControllerPitchInput(Value);
-}
+	Super::Tick(DeltaTime);
 
-//添加输入装备函数
-void ASlashCharacter::EKeyPressed()
-{
-	AWeapon* OverlappingWeapon = Cast<AWeapon>(OverlappingItem);   
-	if (OverlappingItem)
-	{
-		OverlappingWeapon->Equip(GetMesh(), FName("RightHandSocket"),this,this);
-		//将状态枚举改为“单手持武器”
-		CharacterState = ECharacterState::ECS_EquippedOneHandedWeapon;
-		OverlappingItem = nullptr;
-		EquippedWeapon = OverlappingWeapon;
-	}
-	/*else
-	{
-		if (CanDisarm())
-		{
-			PlayEquipMontage(FName("Unequip"));
-			CharacterState = ECharacterState::ECS_Unequipped;
-		}
-		else if (CanArm())
-		{
-			PlayEquipMontage(FName("Equip"));
-			CharacterState = ECharacterState::ECS_EquippedOneHandedWeapon;
-		}
-
-	}*/
 }
 
 //添加攻击输入函数
@@ -121,6 +79,12 @@ void ASlashCharacter::Attack()
 		ActionState = EActionState::EAS_Attacking;
 	}
 	
+}
+
+//攻击动画结束后，将状态设为默认
+void ASlashCharacter::AttackEnd()
+{
+	ActionState = EActionState::EAS_Unoccupied;
 }
 
 //添加武装输入函数
@@ -178,12 +142,6 @@ void ASlashCharacter::Arm()
 	}
 }
 
-//卸装/装备结束后重置默认值
-void ASlashCharacter::FinishEquip()
-{
-	ActionState = EActionState::EAS_Unoccupied;
-}
-
 
 //播放装备/放下武器的动画蒙太奇
 void ASlashCharacter::PlayEquipMontage(const FName& SectionName)
@@ -196,17 +154,16 @@ void ASlashCharacter::PlayEquipMontage(const FName& SectionName)
 	}
 }
 
-//攻击动画结束后，将状态设为默认
-void ASlashCharacter::AttackEnd()
+//卸装/装备结束后重置默认值
+void ASlashCharacter::FinishEquip()
 {
 	ActionState = EActionState::EAS_Unoccupied;
 }
 
-// 每帧运行事件
-void ASlashCharacter::Tick(float DeltaTime)
+//受击结束后重置状态
+void ASlashCharacter::HitReactEnd()
 {
-	Super::Tick(DeltaTime);
-
+	ActionState = EActionState::EAS_Unoccupied;
 }
 
 // 映射输入
@@ -230,5 +187,59 @@ void ASlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	PlayerInputComponent->BindAction(FName("Arm"), IE_Pressed, this, &ASlashCharacter::QKeyPressed);
 }
 
+
+
+//人物前后左右移动事件函数
+void ASlashCharacter::MoveForward(float Value)
+{
+	//如果正在攻击或者正在卸装/装备则停止移动
+	if (ActionState != EActionState::EAS_Unoccupied) return;
+	if (Controller && (Value != 0.f))
+	{
+		//找出向前的正确方向
+		const FRotator ControlRotation = GetControlRotation();
+		const FRotator YawRotation(0.f, ControlRotation.Yaw, 0.f);
+		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+		AddMovementInput(Direction, Value);
+	}
+}
+void ASlashCharacter::MoveRight(float Value)
+{
+	//如果正在攻击或者正在卸装/装备则停止移动
+	if (ActionState != EActionState::EAS_Unoccupied) return;
+	if (Controller && (Value != 0.f))
+	{
+		//找到向右的正确方向
+		const FRotator ControlRotation = GetControlRotation();
+		const FRotator YawRotation(0.f, ControlRotation.Yaw, 0.f);
+		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+		AddMovementInput(Direction, Value);
+	}
+}
+
+//设置玩家鼠标转动视角函数
+void ASlashCharacter::Turn(float Value)
+{
+	AddControllerYawInput(Value);
+}
+void ASlashCharacter::LookUp(float Value)
+{
+	AddControllerPitchInput(Value);
+}
+
+//添加输入装备函数
+void ASlashCharacter::EKeyPressed()
+{
+	AWeapon* OverlappingWeapon = Cast<AWeapon>(OverlappingItem);
+	if (OverlappingItem)
+	{
+		OverlappingWeapon->Equip(GetMesh(), FName("RightHandSocket"), this, this);
+		//将状态枚举改为“单手持武器”
+		CharacterState = ECharacterState::ECS_EquippedOneHandedWeapon;
+		OverlappingItem = nullptr;
+		EquippedWeapon = OverlappingWeapon;
+	}
+
+}
 
 

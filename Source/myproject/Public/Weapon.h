@@ -17,8 +17,14 @@ public:
 	//构造函数
 	AWeapon();
 	
+	void PlayEquipSound();
+
+	void DisableSphereCollision();
+
 	//将武器附着在手上
 	void Equip(USceneComponent* InParent, FName InSocketName,AActor* NewOwner,APawn* NewInstigator);
+
+	void DeactivateEmbers();
 	
 	//将武器附着在背部上
 	void AttachMeshToSocket(USceneComponent* InParent, const FName& InSocketName);
@@ -29,20 +35,28 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	//当球体组件开始重叠时
-	virtual void OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)override;
-	//当球体组件结束重叠时
-	virtual void OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)override;
 	
+	bool ActorSameType(AActor* OtherActor);
+
 	//当方体组件开始重叠时
 	UFUNCTION()
 	void OnBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	void Execute_GetHit(FHitResult& BoxHit);
 
 	//添加Field事件，以便在蓝图中使用
 	UFUNCTION(BlueprintImplementableEvent)
 	void CreateFields(const FVector& FieldLocation);
 
 private:
+	void BoxTrace(FHitResult& BoxHit);
+
+	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
+	FVector BoxTraceExtent = FVector(5.f);
+
+	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
+	bool bShowBoxDebug = false;
+
 	//拾取武器音效
 	UPROPERTY(EditAnywhere,Category="Weapon Properties")
 	USoundBase* EquipSound;

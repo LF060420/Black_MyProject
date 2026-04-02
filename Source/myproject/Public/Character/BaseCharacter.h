@@ -28,7 +28,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-
+	virtual void GetHit_Implementation(const FVector& ImpactPoint) override;
 	//攻击事件
 	virtual void Attack();
 
@@ -73,14 +73,14 @@ protected:
 	/**
 	* 动画蓝图
 	*/
-	UPROPERTY(EditDefaultsOnly, Category = Montages)
+	UPROPERTY(EditDefaultsOnly, Category = Combat)
 	UAnimMontage* AttackMontage;     //在蓝图中添加Attack动画蒙太奇变量
 
-	UPROPERTY(EditDefaultsOnly, Category = Montages)
+	UPROPERTY(EditDefaultsOnly, Category = Combat)
 	UAnimMontage* HitReactMontage;     //在蓝图中添加ReactFrom动画蒙太奇变量
 
 	//在蓝图中添加Death动画蒙太奇变量
-	UPROPERTY(EditDefaultsOnly, Category = Montages)
+	UPROPERTY(EditDefaultsOnly, Category = Combat)
 	UAnimMontage* DeathMontage;        
 
 	UPROPERTY(EditAnywhere,Category="Combat")
@@ -101,10 +101,10 @@ protected:
 private:
 
 	//添加受击音效
-	UPROPERTY(EditAnywhere, Category = Sounds)
+	UPROPERTY(EditAnywhere, Category = Combat)
 	USoundBase* HitSound;
 
 	//添加受击流血效果
-	UPROPERTY(EditAnywhere, Category = VisualEffects)
+	UPROPERTY(EditAnywhere, Category = Combat)
 	UParticleSystem* HitParticle;
 };

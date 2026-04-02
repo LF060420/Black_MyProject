@@ -58,7 +58,7 @@ void AEnemy::BeginPlay()
 		{
 			HealthBarWidget->SetHealthPercent(Attributes->GetHealthPercent());
 		}
-		HealthBarWidget->SetVisibility(true);
+		HideHealthBar();//HealthBarWidget->SetVisibility(true);
 	}
 	EnemyController = Cast<AAIController>(GetController());
 	MoveToTarget(PatrolTarget);
@@ -72,6 +72,7 @@ void AEnemy::BeginPlay()
 		EquippedWeapon = DefaultWeapon;
 	}
 
+	Tags.Add(FName("Enemy"));
 }
 
 void AEnemy::Tick(float DeltaTime)
@@ -206,7 +207,7 @@ void AEnemy::MoveToTarget(AActor* Target)
 	MoveRequest.SetGoalActor(Target);
 	// 设置到达目标的接受半径（距离目标自动停止）
 	MoveRequest.SetAcceptanceRadius(60.f);
-	if(EnemyState!=EEnemyState::EES_Attacking)
+	if(!IsAttacking() && !IsEngaged())
 	EnemyController->MoveTo(MoveRequest);
 }
 
@@ -240,7 +241,7 @@ void AEnemy::PawnSeen(APawn* SeenPawn)
 		EnemyState != EEnemyState::EES_Dead &&
 		EnemyState != EEnemyState::EES_Chasing &&
 		EnemyState < EEnemyState::EES_Attacking &&
-		SeenPawn->ActorHasTag(FName("SlashCharacter"));
+		SeenPawn->ActorHasTag(FName("EngageableTarget"));
 	
 	if (bShouldChaseTarget)
 	{
@@ -254,8 +255,10 @@ bool AEnemy::CanAttack()
 {
 	bool bCanAttack =
 		IsInsideAttackRadius() &&
+		!IsEngaged() &&
 		!IsAttacking() &&
 		!IsDead();
+	if (bCanAttack) UE_LOG(LogTemp, Warning, TEXT("CanAttack"));
 	return bCanAttack;
 }
 
@@ -283,6 +286,14 @@ int32 AEnemy::PlayDeathMontage()
 	return Selection;
 }
 
+//在动画蓝图中被调用的攻击结束函数
+void AEnemy::AttackEnd()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Zi::AttackEnd()"));
+	EnemyState = EEnemyState::EES_NoState;
+	CheckCombatTarget();
+}
+
 
 // 播放Death蒙太奇函数
 void AEnemy::Die()
@@ -295,18 +306,18 @@ void AEnemy::Die()
 	ClearAttackTimer();
 	
 
-	ChasingSpeed = 0.f;
-
 	HideHealthBar();
 	SetLifeSpan(DeathLifeSpan);
 	GetCharacterMovement()->bOrientRotationToMovement = false;
+	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 //攻击函数
 void AEnemy::Attack()
 {
+	EnemyState = EEnemyState::EES_Engaged;
+	UE_LOG(LogTemp, Warning, TEXT("AEnemy::Attack()"));
 	Super::Attack();
-	EnemyState = EEnemyState::EES_Attacking;
 	PlayAttackMontage();
 }
 
@@ -329,28 +340,32 @@ void AEnemy::CheckPatrolTarget()
 	if (InTargetRange(PatrolTarget, PatrolRadius))
 	{
 		PatrolTarget = ChoosePatrolTarget();
-		const float WaitTime = FMath::RandRange(WaitMin, WaitMax);
+		const float WaitTime = FMath::RandRange(PatrolWaitMin, PatrolWaitMax);
 		GetWorldTimerManager().SetTimer(PatrolTimer, this, &AEnemy::PatrolTimerFinished, WaitTime);
 	}
 }
 
 void AEnemy::CheckCombatTarget()
 {
+	
 	// 判断目标是否脱离战斗范围
 	if (IsOutsideCombatRadius())
 	{
 		ClearAttackTimer();
 		LoseInterest();
 		if (!IsEngaged()) StartPatrolling();
+		
 	}
 	else if (IsOutsideAttackRadius() && !IsChasing())
 	{
 		ClearAttackTimer();
 		if (!IsEngaged()) ChaseTarget();
+		
 	}
 	else if (CanAttack())
 	{
 		StartAttackTimer();
+		UE_LOG(LogTemp, Warning, TEXT("CheckCombatTarget()--CanAttack()"));
 	}
 }
 
@@ -369,18 +384,9 @@ void AEnemy::Destroyed()
 // 
 void AEnemy::GetHit_Implementation(const FVector& ImpactPoint)
 {
-	if (HealthBarWidget)
-	{
-		HealthBarWidget->SetVisibility(true);
-	}
-	if (IsAlive())
-	{
-		DirectionHitReact(ImpactPoint);
-	}
-	else Die();
-
-	PlayHitSound(ImpactPoint);
-	SpawnHitParticles(ImpactPoint);
+	Super::GetHit_Implementation(ImpactPoint);
+	if(!IsDead()) ShowHealthBar();
+	ClearPatrolTimer();
 }
 
 

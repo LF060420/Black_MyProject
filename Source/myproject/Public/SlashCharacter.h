@@ -22,31 +22,23 @@ public:
 	ASlashCharacter();
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	
+	virtual void GetHit_Implementation(const FVector& ImpactPoint) override;
 
 	
 protected:
 
 	virtual void BeginPlay() override;
-	
-	//添加输入前后左右移动
+	/* 按键输入*/
 	void MoveForward(float Value);
 	void MoveRight(float Value);
-	
-	//添加输入鼠标转动视角
 	void Turn(float Value);
 	void LookUp(float Value);
-	
-	//添加输入装备输入
 	void EKeyPressed();
+	void QKeyPressed();
+	/* /按键输入*/
 	
 	//添加攻击输入函数
 	virtual void Attack() override;
-	
-	//添加武装函数
-	void QKeyPressed();
-	
- 
 	
 	//攻击动画蒙太奇结束播放通知
 	virtual void AttackEnd() override;
@@ -74,6 +66,9 @@ protected:
 	//卸装/装备结束后重置默认值
 	UFUNCTION(BlueprintCallable)
 	void FinishEquip();
+
+	UFUNCTION(BlueprintCallable)
+	void HitReactEnd();
 private:
 	ECharacterState CharacterState = ECharacterState::ECS_Unequipped;   //初始化人物装备状态枚举
 	UPROPERTY(BlueprintReadwrite,meta=(AllowPrivateAccess="true"))
@@ -93,8 +88,6 @@ private:
 
 	UPROPERTY(VisibleInstanceOnly)
 	Aitems* OverlappingItem;     //武器
-
-	
 
 
 	UPROPERTY(EditDefaultsOnly, Category = Montages)
