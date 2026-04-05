@@ -4,6 +4,7 @@
 #include <Kismet/GameplayStatics.h>
 #include <HUD/HealthBarComponent.h>
 
+
 ABaseCharacter::ABaseCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -18,11 +19,13 @@ void ABaseCharacter::BeginPlay()
 	
 }
 
-void ABaseCharacter::GetHit_Implementation(const FVector& ImpactPoint)
+void ABaseCharacter::GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter)
 {
-	if (IsAlive())
+	UE_LOG(LogTemp, Warning, TEXT("BaseCharacter Hit"));
+
+	if (IsAlive() && Hitter)
 	{
-		DirectionHitReact(ImpactPoint);
+		DirectionHitReact(Hitter->GetActorLocation());
 	}
 	else Die();
 
@@ -48,7 +51,10 @@ void ABaseCharacter::SetWeaponCollisionEnabled(ECollisionEnabled::Type Collision
 //攻击事件
 void ABaseCharacter::Attack()
 {
-
+	if (CombatTarget && CombatTarget->ActorHasTag(FName("Dead")))
+	{
+		CombatTarget = nullptr;
+	}
 }
 
 //检测是否能攻击
@@ -73,7 +79,10 @@ void ABaseCharacter::AttackEnd()
 //播放death蒙太奇
 void ABaseCharacter::Die()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Fu is Worked!"));
+	UE_LOG(LogTemp, Warning, TEXT("BaseCharacter::Die()"));
+
+	Tags.Add(FName("Dead"));
+	PlayDeathMontage();
 }
 
 //计算受击方向
@@ -169,6 +178,48 @@ void ABaseCharacter::SpawnHitParticles(const FVector& ImpactPoint)
 	}
 }
 
+//停止播放Attack蒙太奇
+void ABaseCharacter::StopAttackMontage()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance)
+	{
+		AnimInstance->Montage_Stop(0.25f, AttackMontage);
+	}
+}
+
+void ABaseCharacter::PlayDodgeMontage()
+{
+	if(DodgeMontage) PlayMontageSection(DodgeMontage, FName("Default"));
+}
+
+void ABaseCharacter::DodgeEnd()
+{
+}
+
+// 获取战斗目标后方固定距离的平移对齐目标
+FVector ABaseCharacter::GetTranslationWarpTarget()
+{
+	if(CombatTarget==nullptr) return FVector();
+	const FVector CombatTargetLocation = CombatTarget->GetActorLocation();
+	const FVector Location = GetActorLocation();
+	FVector TargetToMe = (Location - CombatTargetLocation).GetSafeNormal();
+	TargetToMe *= WarpTargetDistance;
+	return CombatTargetLocation + TargetToMe;
+}
+
+// 获取旋转对齐所用的目标位置（看向敌人）
+FVector ABaseCharacter::GetRotationWarpTarget()
+{
+	if (CombatTarget)
+	{
+		return CombatTarget->GetActorLocation();
+	}
+	return FVector();
+}
+
+
+
 void ABaseCharacter::HandleDamage(float DamageAmount)
 {
 	if (Attributes)
@@ -211,13 +262,16 @@ int32 ABaseCharacter::PlayAttackMontage()
 
 int32 ABaseCharacter::PlayDeathMontage()
 {
-	if (!DeathMontage || DeathMontageSections.Num() == 0)
+	UE_LOG(LogTemp, Warning, TEXT("ABaseCharacter::PlayDeathMontage"));
+
+	const int32 Selection = PlayRandomMontageSection(DeathMontage, DeathMontageSections);
+	TEnumAsByte<EDeathPose> Pose(Selection);
+	if (Pose < EDeathPose::EDP_Max)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ABaseCharacter::PlayDeathMontage - No DeathMontage or no sections"));
-		return INDEX_NONE;
+		DeathPose = Pose;
+
 	}
-	UE_LOG(LogTemp, Warning, TEXT("ABaseCharacter::PlayDeathMontage selected section index: "));
-	return PlayRandomMontageSection(DeathMontage,DeathMontageSections);
+	return Selection;
 }
 
 //播放受击蒙太奇

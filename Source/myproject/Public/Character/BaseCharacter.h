@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "Weapon.h"
 #include "Interfaces/HitInterface.h"
+#include "CharacterTypes.h"
 #include "BaseCharacter.generated.h"
 
 
@@ -28,7 +29,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-	virtual void GetHit_Implementation(const FVector& ImpactPoint) override;
+	virtual void GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter) override;
 	//攻击事件
 	virtual void Attack();
 
@@ -51,6 +52,19 @@ protected:
 	void PlayHitSound(const FVector& ImpactPoint);
 	//释放击中特效
 	void SpawnHitParticles(const FVector& ImpactPoint);
+	//停止播放蒙太奇
+	void StopAttackMontage();
+	virtual void PlayDodgeMontage();
+
+	UFUNCTION(BlueprintCallable)
+	virtual void DodgeEnd();
+
+
+	UFUNCTION(BlueprintCallable)
+	FVector GetTranslationWarpTarget();
+
+	UFUNCTION(BlueprintCallable)
+	FVector GetRotationWarpTarget();
 
 	virtual void HandleDamage(float DamageAmount);
 	void PlayMontageSection(UAnimMontage* Montage,const FName& SectionName);
@@ -79,6 +93,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Combat)
 	UAnimMontage* HitReactMontage;     //在蓝图中添加ReactFrom动画蒙太奇变量
 
+	UPROPERTY(EditDefaultsOnly, Category = Combat)
+	UAnimMontage* DodgeMontage;   //在蓝图中添加Dodge(闪避)动画蒙太奇
+
 	//在蓝图中添加Death动画蒙太奇变量
 	UPROPERTY(EditDefaultsOnly, Category = Combat)
 	UAnimMontage* DeathMontage;        
@@ -97,7 +114,16 @@ protected:
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly)
 	UAttributeComponent* Attributes;
 	
+	//记录攻击的对象
+	UPROPERTY(BlueprintReadOnly, Category = "Combat")
+	AActor* CombatTarget;
 
+	UPROPERTY(EditAnywhere,Category="Combat")
+	double WarpTargetDistance = 75.f;
+
+	//人物存活/死亡枚举
+	UPROPERTY(BlueprintReadOnly)
+	TEnumAsByte<EDeathPose> DeathPose;
 private:
 
 	//添加受击音效

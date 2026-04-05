@@ -58,10 +58,10 @@ void AWeapon::DisableSphereCollision()
 
 void AWeapon::DeactivateEmbers()
 {
-	if (EmbersEffect)
+	if (ItemEffect)
 	{
 		//拾取后关闭Niagara特效
-		EmbersEffect->Deactivate();
+		ItemEffect->Deactivate();
 	}
 }
 
@@ -109,15 +109,17 @@ void AWeapon::OnBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Oth
 	if (ActorSameType(OtherActor)) return;
 	FHitResult BoxHit;
 	BoxTrace(BoxHit);   //获取碰撞结果
-	//IgnoreActors.AddUnique(BoxHit.GetActor());   // 将被击中的Actor添加到忽略列表中，避免在同一攻击动作中多次击中同一个目标
+	IgnoreActors.AddUnique(BoxHit.GetActor());   // 将被击中的Actor添加到忽略列表中，避免在同一攻击动作中多次击中同一个目标
 	if (BoxHit.GetActor())
 	{
 		if (ActorSameType(BoxHit.GetActor()))
 		{
 			return;
 		}
-		//应用伤害
+
 		UE_LOG(LogTemp, Warning, TEXT("Apply Damage"));
+
+		//应用伤害
 		UGameplayStatics::ApplyDamage
 		(
 			
@@ -142,7 +144,7 @@ void AWeapon::Execute_GetHit(FHitResult& BoxHit)   //传递击中的位置给接口函数
 	if (HitInterface)
 	{
 
-		HitInterface->Execute_GetHit(BoxHit.GetActor(), BoxHit.ImpactPoint);
+		HitInterface->Execute_GetHit(BoxHit.GetActor(), BoxHit.ImpactPoint, GetOwner());
 	}
 }
 
@@ -174,7 +176,7 @@ void AWeapon::BoxTrace(FHitResult& BoxHit)   //获取碰撞结果函数
 		ETraceTypeQuery::TraceTypeQuery1, // 检测通道类型
 		false,                   // 是否忽略复杂碰撞
 		ActorsToIgnore,          // 要忽略的Actor数组
-		bShowBoxDebug ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None, // 调试显示方式
+		bShowBoxDebug ? EDrawDebugTrace::None : EDrawDebugTrace::None, // 调试显示方式
 		BoxHit,                  // 输出：碰撞结果
 		true                     // 是否忽略自己
 	);

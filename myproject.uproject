@@ -32,8 +32,12 @@
 			]
 		},
 		{
-     			 "Name": "HairStrands",
-     			 "Enabled": true
-  		  }
+			"Name": "HairStrands",
+			"Enabled": true
+		},
+		{
+			"Name": "MotionWarping",
+			"Enabled": true
+		}
 	]
 }

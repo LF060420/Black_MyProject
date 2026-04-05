@@ -4,7 +4,9 @@
 #define THIRTY 30
 #include "myproject/myproject.h"
 #include "Components/SphereComponent.h"
-#include "Slashcharacter.h"
+#include "Interfaces/PickUpInterface.h"
+#include "NiagaraFunctionLibrary.h"
+#include "Kismet/GameplayStatics.h"
 
 
 Aitems::Aitems()
@@ -23,8 +25,8 @@ Aitems::Aitems()
 	Sphere->SetupAttachment(GetRootComponent());
 
 	//赋值Niagara特效
-	EmbersEffect = CreateDefaultSubobject<UNiagaraComponent>(TEXT("Embers"));
-	EmbersEffect->SetupAttachment(GetRootComponent());
+	ItemEffect = CreateDefaultSubobject<UNiagaraComponent>(TEXT("Embers"));
+	ItemEffect->SetupAttachment(GetRootComponent());
 }
 // Called when the game starts or when spawned
 void Aitems::BeginPlay()
@@ -46,23 +48,47 @@ float Aitems::TransformedCos()   //通过游戏时长设置cos值
 // 组件开始重叠
 void Aitems::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	const FString OtherActorName=OtherActor->GetName();
-	ASlashCharacter* SlashCharacter = Cast<ASlashCharacter>(OtherActor);
-	if (SlashCharacter)
+	
+	IPickUpInterface* PickInterface = Cast<IPickUpInterface>(OtherActor);
+	if (PickInterface)
 	{
-		SlashCharacter->SetOverlappingItem(this);
+		PickInterface->SetOverlappingItem(this);
 	}
 }
 //组件结束重叠
 void Aitems::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	const FString OtherActorName=OtherActor->GetName();
-	ASlashCharacter* SlashCharacter = Cast<ASlashCharacter>(OtherActor);
-	if (SlashCharacter)
+	
+	IPickUpInterface* PickInterface = Cast<IPickUpInterface>(OtherActor);
+	if (PickInterface)
 	{
-		SlashCharacter->SetOverlappingItem(nullptr);
+		PickInterface->SetOverlappingItem(nullptr);
 	}
 
+}
+void Aitems::SpawnPickUpSystem()
+{
+	if (PickUpEffect)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			this,
+			PickUpEffect,
+			GetActorLocation()
+		);
+	}
+}
+void Aitems::SpawnPickUpSound()
+{
+	if (PickUpSound)
+	{
+		UGameplayStatics::SpawnSoundAtLocation(
+			this,
+			PickUpSound,
+			GetActorLocation()
+		);
+
+		UE_LOG(LogTemp, Warning, TEXT("SpawnPickUpSound"));
+	}
 }
 void Aitems::Tick(float DeltaTime)   
 {

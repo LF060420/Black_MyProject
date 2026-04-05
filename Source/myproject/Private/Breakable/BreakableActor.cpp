@@ -23,7 +23,7 @@ ABreakableActor::ABreakableActor()
 }
 
 //接口[命中]事件
-void ABreakableActor::GetHit_Implementation(const FVector& ImpactPoint)
+void ABreakableActor::GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter)
 {
 	//如果变量"broken"是true，则Actor是破碎的
 	if (broken)

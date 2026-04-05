@@ -10,6 +10,7 @@
 #include "Weapon.h"
 #include "AIController.h"
 #include "Navigation/PathFollowingComponent.h"
+#include "Soul.h"
 
 AEnemy::AEnemy()
 {
@@ -274,17 +275,6 @@ void AEnemy::HandleDamage(float DamageAmount)
 	}
 }
 
-int32 AEnemy::PlayDeathMontage()
-{
-	const int32 Selection = Super::PlayDeathMontage();
-	TEnumAsByte<EDeathPose> Pose(Selection);
-	if (Pose < EDeathPose::EDP_Max)
-	{
-		DeathPose = Pose;
-		
-	}
-	return Selection;
-}
 
 //在动画蓝图中被调用的攻击结束函数
 void AEnemy::AttackEnd()
@@ -294,30 +284,56 @@ void AEnemy::AttackEnd()
 	CheckCombatTarget();
 }
 
+//死亡后掉落灵魂
+void AEnemy::SpawnSoul()   
+{
+	UWorld* World = GetWorld();
+	if (World && SoulClass && Attributes)
+	{
+		const FVector SpawnLocation = GetActorLocation() + FVector(0.f, 0.f, 50.f);
+		ASoul* SpawnedSoul = World->SpawnActor<ASoul>(SoulClass, SpawnLocation, GetActorRotation());
+		if(SpawnedSoul) SpawnedSoul->SetSouls(SoulNumber);
+		
+	}
+}   
 
 // 播放Death蒙太奇函数
 void AEnemy::Die()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Enemy::Die()"));
+	
+	if (EquippedWeapon)   //死亡后销毁武器(有bug，会误伤主角)
+	{
+		EquippedWeapon->Destroy();
+		EquippedWeapon = nullptr;
+
+		UE_LOG(LogTemp, Warning, TEXT("EquippedWeapon nullptr"));
+	}
+	
+	Super::Die();
 	EnemyState = EEnemyState::EES_Dead;
 	if(IsDead())
-	UE_LOG(LogTemp, Warning, TEXT("Zi::Die()"));
-	DisabledActor();
-	PlayDeathMontage();
+	DisabledActor();   // 禁用角色所有碰撞体
+	
 	ClearAttackTimer();
 	
-
 	HideHealthBar();
 	SetLifeSpan(DeathLifeSpan);
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	//死亡后掉落灵魂
+	SpawnSoul();
 }
 
 //攻击函数
 void AEnemy::Attack()
 {
-	EnemyState = EEnemyState::EES_Engaged;
 	UE_LOG(LogTemp, Warning, TEXT("AEnemy::Attack()"));
+
 	Super::Attack();
+	if (CombatTarget == nullptr) return;
+	EnemyState = EEnemyState::EES_Engaged;
 	PlayAttackMontage();
 }
 
@@ -382,11 +398,16 @@ void AEnemy::Destroyed()
 
 
 // 
-void AEnemy::GetHit_Implementation(const FVector& ImpactPoint)
+void AEnemy::GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter)
 {
-	Super::GetHit_Implementation(ImpactPoint);
+	UE_LOG(LogTemp, Warning, TEXT("Enemy Hit"));
+	Super::GetHit_Implementation(ImpactPoint,Hitter);
 	if(!IsDead()) ShowHealthBar();
 	ClearPatrolTimer();
+	ClearAttackTimer();
+	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	StopAttackMontage();
 }
 
 
@@ -394,7 +415,14 @@ float AEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AC
 {
 	HandleDamage(DamageAmount);
 	CombatTarget = EventInstigator->GetPawn();
-	ChaseTarget();
+	if (IsInsideAttackRadius())
+	{
+		EnemyState = EEnemyState::EES_Attacking;
+	}
+	else if (IsOutsideAttackRadius())
+	{
+		ChaseTarget();
+	}
 	return DamageAmount;
 }
 

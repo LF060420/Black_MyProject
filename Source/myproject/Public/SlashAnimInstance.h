@@ -28,4 +28,7 @@ public:
 	bool IsFalling;                 //ÊÇ·ñÏÂÂä
 	UPROPERTY(BlueprintReadOnly,Category="Movement | Character State")
 	ECharacterState CharacterState;         //×´Ì¬Ã¶¾Ù
+
+	UPROPERTY(BlueprintReadOnly,Category= "Action State")
+	EActionState AnimActionState;
 };

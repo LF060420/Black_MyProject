@@ -25,13 +25,15 @@ public:
 
 
 	/** <IHitInterface>*/
-	virtual void GetHit_Implementation(const FVector& ImpactPoint) override;
+	virtual void GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter) override;
 	/** </IHitInterface>*/
 
 protected:
 	//人物巡逻/追逐/攻击状态机
 	UPROPERTY(BlueprintReadOnly)
 	EEnemyState EnemyState = EEnemyState::EES_Patrolling;
+
+
 
 	/** <AActor>*/
 	virtual void BeginPlay() override;
@@ -44,13 +46,11 @@ protected:
 
 	virtual void HandleDamage(float DamageAmount) override;
 
-	virtual int32 PlayDeathMontage() override;
-
 	virtual void AttackEnd() override;
 
-	//人物存活/死亡枚举
-	UPROPERTY(BlueprintReadOnly)
-	TEnumAsByte<EDeathPose> DeathPose;
+
+
+	void SpawnSoul();
 
 	//定义Death动画蒙太奇函数
 	virtual void Die() override;
@@ -100,9 +100,7 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	UPawnSensingComponent* PawnSensing;
 
-	//记录攻击的对象
-	UPROPERTY()
-	AActor* CombatTarget;
+
 
 	//记录血条可视范围
 	UPROPERTY(EditAnywhere)
@@ -155,4 +153,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	float DeathLifeSpan = 3.f;
 
+	UPROPERTY(EditAnywhere,Category="Combat")
+	TSubclassOf<class ASoul> SoulClass;
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	int32 SoulNumber = 3;   //设置敌人死亡后掉落的灵魂数量
 };

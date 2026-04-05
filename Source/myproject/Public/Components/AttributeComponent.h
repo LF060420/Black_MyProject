@@ -14,10 +14,11 @@ public:
 	UAttributeComponent();
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
+	void RegenStamina(float DeltaTime);
 
 protected:
 	virtual void BeginPlay() override;
+	
 
 private:
 	//添加当前血量
@@ -28,14 +29,47 @@ private:
 	UPROPERTY(EditAnywhere,Category="Actor Attributes")
 	float MaxHealth;
 
+	//添加当前体力
+	UPROPERTY(EditAnywhere, Category = "Actor Attributes")
+	float Stamina;
+
+	//添加最大体力
+	UPROPERTY(EditAnywhere, Category = "Actor Attributes")
+	float MaxStamina;
+
+	//体力消耗
+	UPROPERTY(EditAnywhere, Category = "Actor Attributes")
+	float DodgeCost = 20.f;
+
+	UPROPERTY(EditAnywhere, Category = "Actor Attributes")
+	int32 Gold;
+
+	UPROPERTY(EditAnywhere, Category = "Actor Attributes")
+	int32 Souls;
+
 public:
 	//接受伤害
 	void ReceiveDamage(float Damage);
+
+	//消耗体力
+	void UseStamina(float StaminaCost);
 	
 	//获取血量百分率
 	float GetHealthPercent();
 
+	//获取体力百分率
+	float GetStaminaPercent();
+
 	//判断是否存活
 	bool isAlive();
-		
+
+	UPROPERTY(EditAnywhere,Category="Actor Attributes")
+	float StaminaRegenRate = 8.f;
+
+	void AddSouls(int32 NumberOfSouls);
+	void AddGold(int32 AmountOfGold);
+	FORCEINLINE int32 GetGold() const { return Gold; }
+	FORCEINLINE int32 GetSouls() const { return Souls; }
+	FORCEINLINE float GetDodgeCost() const { return DodgeCost; }
+	FORCEINLINE float GetStamina() const { return Stamina; }
 };

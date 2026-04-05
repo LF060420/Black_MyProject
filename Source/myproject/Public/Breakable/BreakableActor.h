@@ -19,7 +19,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	//重写接口命中事件
-	virtual void GetHit_Implementation(const FVector& ImpactPoint) override;
+	virtual void GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter) override;
 
 	//添加变量[broken],放置出现循环bug
 	UPROPERTY(BlueprintReadWrite,Category="Breakable")

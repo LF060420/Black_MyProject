@@ -1,22 +1,18 @@
 #include "Treasure.h"
-#include "SlashCharacter.h"
+#include <Interfaces/PickUpInterface.h>
 #include "Kismet/GameplayStatics.h"
 
 //球体开始重叠事件
 void ATreasure::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	ASlashCharacter* SlashCharacter = Cast<ASlashCharacter>(OtherActor);
-	if (SlashCharacter)
+	IPickUpInterface* PickUpInterface = Cast<IPickUpInterface>(OtherActor);
+	if (PickUpInterface)
 	{
-		if (PickupSound)
-		{
-			UGameplayStatics::PlaySoundAtLocation
-			(
-				this,
-				PickupSound,
-				GetActorLocation()
-			);
-		}
+		PickUpInterface->AddGold(this);
+		SpawnPickUpSound();
 		Destroy();
+
+		UE_LOG(LogTemp, Warning, TEXT("Treasure Overlap"));
 	}
+
 }

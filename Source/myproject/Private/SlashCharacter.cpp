@@ -4,10 +4,15 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "GroomComponent.h"
+#include "Components/AttributeComponent.h"
 #include "items.h"
 #include "Weapon.h"
 #include "Animation/AnimMontage.h"     //动画蓝图
 #include "Components/BoxComponent.h"   //方体碰撞盒子
+#include "HUD/SlashHUD.h"
+#include "HUD/SlashOverlay.h"
+#include "Soul.h"
+#include "Treasure.h"
 
 // 设置默认数值
 ASlashCharacter::ASlashCharacter()
@@ -54,19 +59,97 @@ void ASlashCharacter::BeginPlay()
 	Super::BeginPlay();
 	//为人物添加标签以方便敌人追踪
 	Tags.Add(FName("EngageableTarget"));   //方便Enemy追踪该标签的玩家
+
+	InitializeSlashOverlay();
 }
 
-void ASlashCharacter::GetHit_Implementation(const FVector& ImpactPoint)
+void ASlashCharacter::InitializeSlashOverlay()
 {
-	Super::GetHit_Implementation(ImpactPoint);
-	ActionState = EActionState::EAS_HitReaction;
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+
+	UE_LOG(LogTemp, Warning, TEXT("InitializeSlashOverlay"));
+
+	if (PlayerController)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("PlayerController"));
+
+		ASlashHUD* SlashHUD = Cast<ASlashHUD>(PlayerController->GetHUD());
+		if (SlashHUD)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("SlashHUD"));
+			SlashHUD->Begin();
+
+			SlashOverlay = SlashHUD->GetSlashOverlay();
+
+			if (SlashOverlay)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("SlashOverlay"));
+
+				if(Attributes)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Attributes"));
+
+					SlashOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
+					SlashOverlay->SetStaminaBarPercent(.8f);
+					SlashOverlay->SetCoinText(0);
+					SlashOverlay->SetSoulsText(0);
+				}
+				
+			}
+		}
+	}
 }
+
+void ASlashCharacter::GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Slash Damage"));
+	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);   //受击时关闭武器碰撞
+	Super::GetHit_Implementation(ImpactPoint, Hitter);
+	if (Attributes && Attributes->GetHealthPercent() > 0.f)
+	{
+		ActionState = EActionState::EAS_HitReaction;
+	}
+	
+}
+
+
+void ASlashCharacter::SetOverlappingItem(Aitems* Item)
+{
+	OverlappingItem = Item;
+}
+
+void ASlashCharacter::AddSouls(ASoul* Soul)
+{
+	
+
+	if (Attributes && SlashOverlay)
+	{
+		Attributes->AddSouls(Soul->GetSouls());
+		UE_LOG(LogTemp, Warning, TEXT("AddSouls"));
+		SlashOverlay->SetSoulsText(Attributes->GetSouls());
+	}
+}
+
+void ASlashCharacter::AddGold(ATreasure* Treasure)
+{
+	if (Attributes && SlashOverlay)
+	{
+		Attributes->AddGold(Treasure->GetGold());
+		SlashOverlay->SetCoinText(Treasure->GetGold());
+	}
+}
+
+
 
 // 每帧运行事件
 void ASlashCharacter::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
-
+	//Super::Tick(DeltaTime);
+	if (Attributes && SlashOverlay)
+	{
+		Attributes->RegenStamina(DeltaTime);
+		SlashOverlay->SetStaminaBarPercent(Attributes->GetStaminaPercent());
+	}
 }
 
 //添加攻击输入函数
@@ -154,6 +237,15 @@ void ASlashCharacter::PlayEquipMontage(const FName& SectionName)
 	}
 }
 
+void ASlashCharacter::Die()
+{
+	UE_LOG(LogTemp, Warning, TEXT("ASlashCharacter::Die()"));
+
+	Super::Die();
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);   //死亡时关闭人物碰撞
+	ActionState = EActionState::EAS_Dead;
+}
+
 //卸装/装备结束后重置默认值
 void ASlashCharacter::FinishEquip()
 {
@@ -164,6 +256,26 @@ void ASlashCharacter::FinishEquip()
 void ASlashCharacter::HitReactEnd()
 {
 	ActionState = EActionState::EAS_Unoccupied;
+}
+
+void ASlashCharacter::SetHUDHealth()
+{
+	if (SlashOverlay && Attributes)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SetHUDHealth"));
+
+		SlashOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
+	}
+}
+
+float ASlashCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	HandleDamage(DamageAmount);
+	SetHUDHealth();
+
+	UE_LOG(LogTemp, Warning, TEXT("Slash TakeDamage"));
+
+	return DamageAmount;
 }
 
 // 映射输入
@@ -178,16 +290,16 @@ void ASlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	PlayerInputComponent->BindAxis(FName("LookUp"), this, &ASlashCharacter::LookUp);
 	
 	//添加跳跃的操作映射
-	PlayerInputComponent->BindAction(FName("Jump"), IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction(FName("Jump"), IE_Pressed, this, &ASlashCharacter::Jump);
 	//添加装备的操作映射
 	PlayerInputComponent->BindAction(FName("Equip"), IE_Pressed, this, &ASlashCharacter::EKeyPressed);
 	//添加攻击的操作映射
 	PlayerInputComponent->BindAction(FName("Attack"), IE_Pressed, this, &ASlashCharacter::Attack);
 	//添加武装的操作映射
 	PlayerInputComponent->BindAction(FName("Arm"), IE_Pressed, this, &ASlashCharacter::QKeyPressed);
+	//闪避的操作映射
+	PlayerInputComponent->BindAction(FName("Dodge"), IE_Pressed, this, &ASlashCharacter::Dodge);
 }
-
-
 
 //人物前后左右移动事件函数
 void ASlashCharacter::MoveForward(float Value)
@@ -240,6 +352,36 @@ void ASlashCharacter::EKeyPressed()
 		EquippedWeapon = OverlappingWeapon;
 	}
 
+}
+
+//跳跃函数
+void ASlashCharacter::Jump()
+{
+	if (ActionState == EActionState::EAS_Unoccupied)
+	{
+		Super::Jump();
+	}
+}
+
+void ASlashCharacter::Dodge()
+{
+	if (ActionState != EActionState::EAS_Unoccupied) return;
+	if (Attributes && Attributes->GetStamina() > Attributes->GetDodgeCost())
+	{
+		PlayDodgeMontage();   //BaseCharacter定义的闪避函数
+		ActionState = EActionState::EAS_Dodge;
+		if (Attributes && SlashOverlay)
+		{
+			Attributes->UseStamina(Attributes->GetDodgeCost());
+			SlashOverlay->SetStaminaBarPercent(Attributes->GetStaminaPercent());
+		}
+	}
+}
+
+void ASlashCharacter::DodgeEnd()
+{
+	Super::DodgeEnd();
+	ActionState = EActionState::EAS_Unoccupied;
 }
 
 

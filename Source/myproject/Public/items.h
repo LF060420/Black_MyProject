@@ -63,7 +63,17 @@ protected:
 	USphereComponent* Sphere;    //新建碰撞球体类 
 
 	UPROPERTY(EditAnywhere)
-	UNiagaraComponent* EmbersEffect;      //新建Niagara特效类
+	UNiagaraComponent* ItemEffect;      //新建Niagara特效类
+
+	UPROPERTY(EditAnywhere)
+	class UNiagaraSystem* PickUpEffect;
+
+	virtual void SpawnPickUpSystem();
+
+	UPROPERTY(EditAnywhere)
+	class USoundBase* PickUpSound;
+
+	virtual void SpawnPickUpSound();
 
 };
 

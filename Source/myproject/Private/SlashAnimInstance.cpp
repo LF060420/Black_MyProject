@@ -28,5 +28,8 @@ void USlashAnimInstance::NativeUpdateAnimation(float DeltaTime)
 		IsFalling = SlashCharacterMovement->IsFalling();
 		//获取人物的状态枚举
 		CharacterState = SlashCharacter->GetCharacterState();
+		AnimActionState = SlashCharacter->GetActionState();
+
+		
 	}
 }
