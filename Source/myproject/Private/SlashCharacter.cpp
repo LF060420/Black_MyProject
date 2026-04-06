@@ -63,6 +63,17 @@ void ASlashCharacter::BeginPlay()
 	InitializeSlashOverlay();
 }
 
+// 每帧运行事件
+void ASlashCharacter::Tick(float DeltaTime)
+{
+	//Super::Tick(DeltaTime);
+	if (Attributes && SlashOverlay)
+	{
+		Attributes->RegenStamina(DeltaTime);
+		SlashOverlay->SetStaminaBarPercent(Attributes->GetStaminaPercent());
+	}
+}
+
 void ASlashCharacter::InitializeSlashOverlay()
 {
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
@@ -140,17 +151,6 @@ void ASlashCharacter::AddGold(ATreasure* Treasure)
 }
 
 
-
-// 每帧运行事件
-void ASlashCharacter::Tick(float DeltaTime)
-{
-	//Super::Tick(DeltaTime);
-	if (Attributes && SlashOverlay)
-	{
-		Attributes->RegenStamina(DeltaTime);
-		SlashOverlay->SetStaminaBarPercent(Attributes->GetStaminaPercent());
-	}
-}
 
 //添加攻击输入函数
 void ASlashCharacter::Attack()
@@ -262,7 +262,7 @@ void ASlashCharacter::SetHUDHealth()
 {
 	if (SlashOverlay && Attributes)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("SetHUDHealth"));
+		UE_LOG(LogTemp, Warning, TEXT("ASlashSetHUDHealth"));
 
 		SlashOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
 	}

@@ -15,7 +15,7 @@ void USlashOverlay::SetStaminaBarPercent(float Percent)
 {
 	if (StaminaProgressBar)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Set Stamina"));
+		//UE_LOG(LogTemp, Warning, TEXT("Set Stamina"));
 		StaminaProgressBar->SetPercent(Percent);
 	}
 }

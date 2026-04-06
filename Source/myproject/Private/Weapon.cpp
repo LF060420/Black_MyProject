@@ -30,7 +30,7 @@ void AWeapon::BeginPlay()
 {
 	Super::BeginPlay();
 
-	WeaponBox->OnComponentBeginOverlap.AddDynamic(this, &AWeapon::OnBoxOverlap);
+	WeaponBox->OnComponentBeginOverlap.AddDynamic(this, &AWeapon::OnBoxOverlap);   //绑定重叠事件在碰撞盒子中
 }
 
 void AWeapon::PlayEquipSound()
@@ -109,9 +109,11 @@ void AWeapon::OnBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Oth
 	if (ActorSameType(OtherActor)) return;
 	FHitResult BoxHit;
 	BoxTrace(BoxHit);   //获取碰撞结果
-	IgnoreActors.AddUnique(BoxHit.GetActor());   // 将被击中的Actor添加到忽略列表中，避免在同一攻击动作中多次击中同一个目标
+	//IgnoreActors.AddUnique(BoxHit.GetActor());   // 将被击中的Actor添加到忽略列表中，避免在同一攻击动作中多次击中同一个目标
 	if (BoxHit.GetActor())
 	{
+
+
 		if (ActorSameType(BoxHit.GetActor()))
 		{
 			return;
@@ -143,6 +145,7 @@ void AWeapon::Execute_GetHit(FHitResult& BoxHit)   //传递击中的位置给接口函数
 	IHitInterface* HitInterface = Cast<IHitInterface>(BoxHit.GetActor());
 	if (HitInterface)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Execute_GetHit"));
 
 		HitInterface->Execute_GetHit(BoxHit.GetActor(), BoxHit.ImpactPoint, GetOwner());
 	}
@@ -176,7 +179,7 @@ void AWeapon::BoxTrace(FHitResult& BoxHit)   //获取碰撞结果函数
 		ETraceTypeQuery::TraceTypeQuery1, // 检测通道类型
 		false,                   // 是否忽略复杂碰撞
 		ActorsToIgnore,          // 要忽略的Actor数组
-		bShowBoxDebug ? EDrawDebugTrace::None : EDrawDebugTrace::None, // 调试显示方式
+		bShowBoxDebug ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None, // 调试显示方式
 		BoxHit,                  // 输出：碰撞结果
 		true                     // 是否忽略自己
 	);

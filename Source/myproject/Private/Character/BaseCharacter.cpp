@@ -224,14 +224,15 @@ void ABaseCharacter::HandleDamage(float DamageAmount)
 {
 	if (Attributes)
 	{
-		const bool bWasAlive = Attributes->isAlive();
+		//const bool bWasAlive = Attributes->isAlive();
 
 		Attributes->ReceiveDamage(DamageAmount);
 
-		if (bWasAlive && !Attributes->isAlive())
+		UE_LOG(LogTemp, Warning, TEXT("HandleDamage"));
+		/*if (bWasAlive && !Attributes->isAlive())
 		{
 			Die();
-		}
+		}*/
 	}
 }
 

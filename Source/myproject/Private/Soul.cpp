@@ -7,17 +7,24 @@
 
 void ASoul::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	IPickUpInterface* PickUpInterface = Cast<IPickUpInterface>(OtherActor);
-	if (PickUpInterface)
+	UE_LOG(LogTemp, Warning, TEXT("ASoul::OnSphereOverlap"));
+	if (OtherActor && OtherActor->ActorHasTag(TEXT("EngageableTarget")))
 	{
-		PickUpInterface->AddSouls(this);
-		SpawnPickUpSystem();
-		SpawnPickUpSound();
-		Destroy();
+		IPickUpInterface* PickUpInterface = Cast<IPickUpInterface>(OtherActor);
+		if (PickUpInterface)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("ASoul::ActorHasTag"));
 
-		UE_LOG(LogTemp, Warning, TEXT("Soul Overlap"));
+			PickUpInterface->AddSouls(this);
+			SpawnPickUpSystem();
+			SpawnPickUpSound();
+			Destroy();
+
+			UE_LOG(LogTemp, Warning, TEXT("Soul Overlap"));
+		}
+
 	}
-
+	
 }
 
 

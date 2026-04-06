@@ -23,6 +23,11 @@ Aitems::Aitems()
 
 	Sphere= CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
 	Sphere->SetupAttachment(GetRootComponent());
+	if (Sphere) 
+	{ 
+		Sphere->SetCollisionResponseToAllChannels(ECR_Ignore);
+		Sphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	}
 
 	//¸³ÖµNiagaraÌØÐ§
 	ItemEffect = CreateDefaultSubobject<UNiagaraComponent>(TEXT("Embers"));
